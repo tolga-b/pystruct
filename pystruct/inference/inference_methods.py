@@ -122,6 +122,9 @@ def inference_dispatch(unary_potentials, pairwise_potentials, edges,
     elif inference_method == "unary":
         return inference_unaries(unary_potentials, pairwise_potentials, edges,
                                  **kwargs)
+    elif inference_method == "mixed_ogm":
+        return inference_mixed_ogm(unary_potentials, pairwise_potentials, edges,
+                                   return_energy=return_energy, **kwargs)
     else:
         raise ValueError("inference_method must be 'lp', 'ad3', 'qpbo', 'ogm'"
                          " or 'dai', got %s" % inference_method)
@@ -143,6 +146,134 @@ def _validate_params(unary_potentials, pairwise_params, edges):
                                 edges.shape[0]))
         pairwise_potentials = pairwise_params
     return n_states, pairwise_potentials
+
+
+def _validate_mixed_params(unary_potentials, pairwise_params, edges):
+    """
+    Use this if the number of states per node differs in the graph, like DPM models
+    :param unary_potentials:
+    :param pairwise_params:
+    :param edges:
+    :return:
+    """
+    n_states_per_node = [len(unary_pot) for unary_pot in unary_potentials]
+    pw_shape_matches = [pairwise_params[i].shape ==
+                        (n_states_per_node[edges[i][0]], n_states_per_node[edges[i][1]])
+                        for i in range(len(pairwise_params))]
+    if not np.all(pw_shape_matches):
+        raise ValueError("pairwise_params dimensions do not match n_states_per_node "
+                         "for the given edges")
+    pairwise_potentials = pairwise_params
+    return n_states_per_node, pairwise_potentials
+
+
+def inference_mixed_ogm(unary_potentials, pairwise_potentials, edges,
+                        return_energy=False, alg='dyn', init=None,
+                        reserveNumFactorsPerVariable=2, **kwargs):
+    """Inference with OpenGM backend.
+    Use this if the number of states per node differs in the graph, like DPM models
+
+    Parameters
+    ----------
+    unary_potentials : nd-array
+        Unary potentials of energy function.
+
+    pairwise_potentials : nd-array
+        Pairwise potentials of energy function.
+
+    edges : nd-array
+        Edges of energy function.
+
+    alg : string
+        Possible choices currently are:
+            * 'bp' for Loopy Belief Propagation.
+            * 'dd' for Dual Decomposition via Subgradients.
+            * 'trws' for Vladimirs TRWs implementation.
+            * 'trw' for OGM  TRW.
+            * 'gibbs' for Gibbs sampling.
+            * 'lf' for Lazy Flipper
+            * 'fm' for Fusion Moves (alpha-expansion fusion)
+            * 'dyn' for Dynamic Programming (message passing in trees) (default)
+            * 'gc' for Graph Cut
+            * 'alphaexp' for Alpha Expansion using Graph Cuts
+            * 'mqpbo' for multi-label qpbo
+
+    init : nd-array
+        Initial solution for starting inference (ignored by some algorithms).
+
+    reserveNumFactorsPerVariable :
+        reserve a certain number of factors for each variable can speed up
+        the building of a graphical model.
+        ( For a 2d grid with second order factors one should set this to 5
+         4 2-factors and 1 unary factor for most pixels )
+
+    Returns
+    -------
+    labels : nd-array
+        Approximate (usually) MAP variable assignment.
+    """
+
+    import opengm
+    n_states_per_node, pairwise_potentials = \
+        _validate_mixed_params(unary_potentials, pairwise_potentials, edges)
+    n_nodes = len(unary_potentials)
+    n_edges = len(edges)
+
+    gm = opengm.gm(np.array(n_states_per_node, dtype=opengm.label_type))
+
+    nFactors = int(n_nodes+edges.shape[0])
+    gm.reserveFactors(nFactors)
+    gm.reserveFunctions(nFactors, 'explicit')
+
+    # (opengm's value_type == float64 but all types are accepted)
+    # multiply by -1 since default algorithm is min-sum
+    # add all unaries
+    for i in range(n_nodes):
+        unary_i = np.require(unary_potentials[i], dtype=opengm.value_type)*-1.0
+        gm.addFactor(gm.addFunction(unary_i), i)
+
+    # add pariwise functions
+    # - first axis of secondOrderFunctions iterates over the function)
+    for i in range(n_edges):
+        pw_i = -np.require(pairwise_potentials[i], dtype=opengm.value_type)
+        gm.addFactor(gm.addFunction(pw_i), edges[i].astype(np.uint64))
+
+    if alg == 'bp':
+        inference = opengm.inference.BeliefPropagation(gm)
+    elif alg == 'dd':
+        inference = opengm.inference.DualDecompositionSubgradient(gm)
+    elif alg == 'trws':
+        inference = opengm.inference.TrwsExternal(gm)
+    elif alg == 'trw':
+        inference = opengm.inference.TreeReweightedBp(gm)
+    elif alg == 'gibbs':
+        inference = opengm.inference.Gibbs(gm)
+    elif alg == 'lf':
+        inference = opengm.inference.LazyFlipper(gm)
+    elif alg == 'icm':
+        inference = opengm.inference.Icm(gm)
+    elif alg == 'dyn':
+        inference = opengm.inference.DynamicProgramming(gm)
+    elif alg == 'fm':
+        inference = opengm.inference.AlphaExpansionFusion(gm)
+    elif alg == 'gc':
+        inference = opengm.inference.GraphCut(gm)
+    elif alg == 'loc':
+        inference = opengm.inference.Loc(gm)
+    elif alg == 'mqpbo':
+        inference = opengm.inference.Mqpbo(gm)
+    elif alg == 'alphaexp':
+        inference = opengm.inference.AlphaExpansion(gm)
+    if init is not None:
+        inference.setStartingPoint(init)
+
+    inference.infer()
+    # we convert the result to int from unsigned int
+    # because otherwise we are sure to shoot ourself in the foot
+    res = inference.arg().astype(np.int)
+    if return_energy:
+        return res, gm.evaluate(res)
+    return res
 
 
 def inference_ogm(unary_potentials, pairwise_potentials, edges,
