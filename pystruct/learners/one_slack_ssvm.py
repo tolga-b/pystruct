@@ -180,7 +180,7 @@ class OneSlackSSVM(BaseSSVM):
         b = cvxopt.matrix([C])
 
         # solve QP model
-        cvxopt.solvers.options['feastol'] = 1e-5
+        cvxopt.solvers.options['feastol'] = 1e-6
         #if hasattr(self, 'old_solution'):
             #s = self.old_solution['s']
             ## put s slightly inside the cone..

@@ -1,5 +1,5 @@
 import numpy as np
-
+import opengm
 from .linear_programming import lp_general_graph
 
 
@@ -212,8 +212,6 @@ def inference_mixed_ogm(unary_potentials, pairwise_potentials, edges,
     labels : nd-array
         Approximate (usually) MAP variable assignment.
     """
-
-    import opengm
     n_states_per_node, pairwise_potentials = \
         _validate_mixed_params(unary_potentials, pairwise_potentials, edges)
     n_nodes = len(unary_potentials)

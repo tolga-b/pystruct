@@ -175,7 +175,7 @@ class NSlackSSVMWeighted(BaseSSVM):
         h = cvxopt.matrix(np.hstack((tmp1, tmp2, zero_constr)))
 
         # solve QP model
-        cvxopt.solvers.options['feastol'] = 1e-5
+        cvxopt.solvers.options['feastol'] = 1e-6
         try:
             solution = cvxopt.solvers.qp(P, q, G, h)
         except ValueError:
@@ -200,13 +200,13 @@ class NSlackSSVMWeighted(BaseSSVM):
             print("%d support vectors out of %d points" % (np.sum(sv),
                                                            n_constraints))
             # calculate per example box constraint:
-            print("Box constraints at C: %d" % np.sum(1 - box / C < 1e-3))
+            print("Box constraints at C: %d" % np.sum((1 - box / (C * weights)) < 1e-3))
             print("dual objective: %f" % -solution['primal objective'])
         self.w = np.dot(a, joint_feature_matrix)
         return -solution['primal objective']
 
-    def _check_bad_constraint(self, y_hat, slack, old_constraints):
-        if slack < 1e-5:
+    def _check_bad_constraint(self, y_hat, slack, old_constraints, weight):
+        if weight*slack < 1e-6:
             return True
         y_hat_plain = unwrap_pairwise(y_hat)
 
@@ -229,9 +229,9 @@ class NSlackSSVMWeighted(BaseSSVM):
                 # if slack of new constraint is smaller or not
                 # significantly larger, don't add constraint.
                 # if smaller, complain about approximate inference.
-                if slack - slack_tmp < -1e-5:
+                if weight*(slack - slack_tmp) < -1e-6:
                     if self.verbose > 0:
-                        print("bad inference: %f" % (slack_tmp - slack))
+                        print("bad inference: %f" % (weight*(slack_tmp - slack)))
                     if self.break_on_bad:
                         raise ValueError("bad inference: %f" % (slack_tmp -
                                                                 slack))
@@ -335,7 +335,7 @@ class NSlackSSVMWeighted(BaseSSVM):
                             continue
 
                         if self._check_bad_constraint(y_hat, slack,
-                                                      constraints[i]):
+                                                      constraints[i], weights[i]):
                             continue
 
                         constraints[i].append([y_hat, delta_joint_feature, loss])
@@ -397,7 +397,7 @@ class NSlackSSVMWeighted(BaseSSVM):
         if verbose:
             print("Computing final objective.")
         self.timestamps_.append(time() - self.timestamps_[0])
-        self.primal_objective_curve_.append(self._objective(X, Y))
+        self.primal_objective_curve_.append(self._objective(X, Y, weights))
         self.objective_curve_.append(objective)
         if self.logger is not None:
             self.logger(self, 'final')
@@ -432,3 +432,4 @@ class NSlackSSVMWeighted(BaseSSVM):
             for j in np.where(to_remove)[0][::-1]:
                 del sample[j]
             assert(len(sample) == len(self.last_active[i]))
+

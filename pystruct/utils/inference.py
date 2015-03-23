@@ -109,7 +109,7 @@ def loss_augmented_inference(model, x, y, w, relaxed=True):
 
 
 # easy debugging
-def objective_primal(model, w, X, Y, C, variant='n_slack', n_jobs=1):
+def objective_primal(model, w, X, Y, C, weights, variant='n_slack', n_jobs=1):
     objective = 0
     constraints = Parallel(
         n_jobs=n_jobs)(delayed(find_constraint)(
@@ -119,6 +119,9 @@ def objective_primal(model, w, X, Y, C, variant='n_slack', n_jobs=1):
 
     if variant == 'n_slack':
         slacks = np.maximum(slacks, 0)
+    elif variant == 'n_slack_weighted':
+        slacks = np.maximum(slacks, 0)
+        slacks *= weights
 
     objective = max(np.sum(slacks), 0) * C + np.sum(w ** 2) / 2.
     return objective

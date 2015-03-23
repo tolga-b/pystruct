@@ -80,10 +80,12 @@ class BaseSSVM(BaseEstimator):
                 print("current loss: %f" % (display_loss))
             self.loss_curve_.append(display_loss)
 
-    def _objective(self, X, Y):
+    def _objective(self, X, Y, weights=None):
         if type(self).__name__ == 'OneSlackSSVM':
             variant = 'one_slack'
+        elif type(self).__name__ == 'NSlackSSVMWeighted':
+            variant = 'n_slack_weighted'
         else:
             variant = 'n_slack'
-        return objective_primal(self.model, self.w, X, Y, self.C,
+        return objective_primal(self.model, self.w, X, Y, self.C, weights,
                                 variant=variant, n_jobs=self.n_jobs)
