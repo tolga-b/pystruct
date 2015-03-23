@@ -12,7 +12,7 @@ class CRF(StructuredModel):
         self.n_states = n_states
         if inference_method is None:
             # get first in list that is installed
-            inference_method = get_installed(['ad3', 'lp'])[0]
+            inference_method = get_installed(['ad3', 'max-product', 'lp'])[0]
         self.inference_method = inference_method
         self.inference_calls = 0
         self.n_features = n_features
@@ -41,7 +41,7 @@ class CRF(StructuredModel):
         self._set_class_weight()
 
     def __repr__(self):
-        return ("%s(n_states: %d, inference_method: %s)"
+        return ("%s(n_states: %s, inference_method: %s)"
                 % (type(self).__name__, self.n_states,
                    self.inference_method))
 

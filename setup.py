@@ -1,6 +1,6 @@
 from setuptools import setup
 from setuptools.extension import Extension
-from Cython.Distutils import build_ext
+import numpy as np
 
 import os
 
@@ -8,8 +8,8 @@ if os.path.exists('MANIFEST'):
     os.remove('MANIFEST')
 
 setup(name="pystruct",
-      version="0.2",
-      install_requires=["ad3", "pyqpbo"],
+      version="0.2.3",
+      install_requires=["ad3"],
       packages=['pystruct', 'pystruct.learners', 'pystruct.inference',
                 'pystruct.models', 'pystruct.utils', 'pystruct.datasets',
                 'pystruct.tests', 'pystruct.tests.test_learners',
@@ -22,8 +22,9 @@ setup(name="pystruct",
       url="http://pystruct.github.io",
       license="BSD 2-clause",
       use_2to3=True,
-      cmdclass={'build_ext': build_ext},
-      ext_modules=[Extension("pystruct.models.utils", ["src/utils.pyx"])],
+      ext_modules=[Extension("pystruct.models.utils", ["src/utils.c"]),
+                   Extension("pystruct.inference._viterbi",
+                             ["pystruct/inference/_viterbi.c"])],
       classifiers=['Intended Audience :: Science/Research',
                    'Intended Audience :: Developers',
                    'License :: OSI Approved',
@@ -39,4 +40,5 @@ setup(name="pystruct",
                    'Programming Language :: Python :: 3',
                    'Programming Language :: Python :: 3.3',
                    ],
+      include_dirs=[np.get_include()]
       )

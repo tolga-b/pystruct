@@ -15,9 +15,11 @@ to make use of structured prediction algorithms.
 The design tries to stay as close as possible to the interface and conventions
 of `scikit-learn <http://scikit-learn.org/dev>`_.
 
-The current version is PyStruct 0.2 which you can install via pip:
+The current version is PyStruct 0.2.2 which you can install via pip:
 
     pip install pystruct
+
+Detailed installation instructions can be found under :ref:`installation`.
 
 Starting with this first stable release, PyStruct will remain
 stable with respect to API and will provide backward compatibility.
@@ -33,20 +35,6 @@ If you find PyStruct helpful, please cite `our paper <http://jmlr.org/papers/vol
     | PyStruct - Structured prediction in Python
     | Journal of machine learning, 2014
     | `bibtex here <http://jmlr.org/papers/v15/mueller14a.bib>`_
-
-Installation
-=============
-To install pystruct, you need cvxopt, cython and scikit-learn.
-
-The easiest way to install pystruct is using pip:
-
-    pip install pystruct
-
-This will also install the additional inference packages ad3 and pyqpbo.
-
-You might also want to check out `OpenGM <http://ipa.iwr.uni-heidelberg.de/jkappes/opengm2/>`_,
-a library containing many many inference algorithms that can be used with
-PyStruct.
 
 
 Introduction
@@ -84,7 +72,7 @@ These perform inference: they run your model on data
 in order to make predictions.
 
 There are some options to use different solvers for inference. A linear
-programming solver using GLPK is included. I have Python interfaces for several
+programming solver using cvxopt is included. I have Python interfaces for several
 other methods on github, including LibDAI, QPBO, AD3.
 
 This is where the heavy lifting is done and in some sense these backends are
@@ -101,3 +89,4 @@ solver (which should be a faster undergenerating solver, such as QPBO).
     auto_examples/index
     references.rst
     intro.rst
+    installation.rst

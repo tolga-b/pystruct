@@ -37,12 +37,12 @@ def test_initialize():
 def test_inference_trivial():
     # size 6 chain graph
     # first three and last three have a latent variable
-    features = np.array([-1,  1, -1, 1, -1,  1])
+    features = np.array([-1, 1, -1, 1, -1, 1])
     unary_parameters = np.array([-1, 1])
     pairwise_parameters = np.array([+0,
-                                    +0,  0,
-                                    +3,  0, 0,
-                                    +0,  3, 0, 0])
+                                    +0, 0,
+                                    +3, 0, 0,
+                                    +0, 3, 0, 0])
     w = np.hstack([unary_parameters, pairwise_parameters])
     crf = LatentNodeCRF(n_labels=2, n_features=1, n_hidden_states=2)
     # edges for latent states. Latent states named 6, 7
@@ -88,19 +88,16 @@ def test_inference_trivial():
                                                     return_energy=True)
     assert_almost_equal(-energy_lp, np.dot(w, crf.joint_feature(x, h_hat)) +
                         crf.loss(h_hat, y))
-    #print(h_hat)
-    #print(h)
-    #print(crf.loss(h_hat, h))
 
 
 def test_inference_chain():
     # same with pairwise edges:
-    features = np.array([-1,  1, -1, 1, -1,  1])
+    features = np.array([-1, 1, -1, 1, -1, 1])
     unary_parameters = np.array([-1, 1])
     pairwise_parameters = np.array([+1,
-                                    +0,  1,
-                                    +3,  0, 0,
-                                    +0,  3, 0, 0])
+                                    +0, 1,
+                                    +3, 0, 0,
+                                    +0, 3, 0, 0])
     w = np.hstack([unary_parameters, pairwise_parameters])
     crf = LatentNodeCRF(n_labels=2, n_features=1, n_hidden_states=2)
     edges = np.vstack([np.arange(5), np.arange(1, 6)]).T
@@ -133,12 +130,12 @@ def test_inference_trivial_features():
     # size 6 chain graph
     # first three and last three have a latent variable
     # last two features are for latent variables
-    features = np.array([-1,  1, -1, 1, -1,  1, 0, 0])
+    features = np.array([-1, 1, -1, 1, -1, 1, 0, 0])
     unary_parameters = np.array([-1, 1, 0, 0])
     pairwise_parameters = np.array([+0,
-                                    +0,  0,
-                                    +3,  0, 0,
-                                    +0,  3, 0, 0])
+                                    +0, 0,
+                                    +3, 0, 0,
+                                    +0, 3, 0, 0])
     w = np.hstack([unary_parameters, pairwise_parameters])
     crf = LatentNodeCRF(n_labels=2, n_features=1, n_hidden_states=2,
                         latent_node_features=True)
@@ -192,7 +189,7 @@ def test_edge_feature_latent_node_crf_no_latent():
 
     # Test inference with different weights in different directions
 
-    X, Y = generate_blocks_multinomial(noise=2, n_samples=1, seed=1, size_x=10)
+    X, Y = generate_blocks_multinomial(noise=2, n_samples=1, seed=1, size_x=8)
     x, y = X[0], Y[0]
     n_states = x.shape[-1]
 
@@ -239,7 +236,7 @@ def test_edge_feature_latent_node_crf_no_latent():
         assert_array_almost_equal(res[1], y_pred[1], 4)
         assert_array_equal(y, np.argmax(y_pred[0], axis=-1))
 
-    for inference_method in get_installed(["lp", "ad3", "qpbo"]):
+    for inference_method in get_installed(["qpbo", "ad3", "lp"])[:2]:
         # again, this time discrete predictions only
         crf = EdgeFeatureLatentNodeCRF(n_labels=3,
                                        inference_method=inference_method,

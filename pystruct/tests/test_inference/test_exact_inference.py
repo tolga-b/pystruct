@@ -12,8 +12,7 @@ def test_chain():
                                 ('ad3', {'branch_and_bound': True}),
                                 ('ogm', {'alg': 'dyn'}),
                                 ('ogm', {'alg': 'dd'}),
-                                ('ogm', {'alg': 'trw'}),
-                                ('dai', {'alg': 'jt'})])
+                                ('ogm', {'alg': 'trw'})])
     n_states = 3
     n_nodes = 10
 
@@ -35,7 +34,6 @@ def test_chain():
                 if chain is backward and alg[0] == 'ogm':
                     # ogm needs sorted indices
                     continue
-                print(alg)
                 y = inference_dispatch(unary_potentials, pairwise_potentials,
                                        chain, alg)
                 assert_array_equal(y, y_lp)

@@ -68,34 +68,15 @@ n_labels = y_train.shape[1]
 full = np.vstack([x for x in itertools.combinations(range(n_labels), 2)])
 tree = chow_liu_tree(y_train)
 
-full_model = MultiLabelClf(edges=full, inference_method='qpbo')
-independent_model = MultiLabelClf(inference_method='unary')
-tree_model = MultiLabelClf(edges=tree, inference_method="max-product")
-
-full_ssvm = OneSlackSSVM(full_model, inference_cache=50, C=.1, tol=0.01)
+#tree_model = MultiLabelClf(edges=tree, inference_method=('ogm', {'alg': 'dyn'}))
+tree_model = MultiLabelClf(edges=tree, inference_method='max-product')
 
 tree_ssvm = OneSlackSSVM(tree_model, inference_cache=50, C=.1, tol=0.01)
 
-independent_ssvm = OneSlackSSVM(independent_model, C=.1, tol=0.01)
-
-print("fitting independent model...")
-independent_ssvm.fit(X_train, y_train)
-print("fitting full model...")
-full_ssvm.fit(X_train, y_train)
 print("fitting tree model...")
 tree_ssvm.fit(X_train, y_train)
-
-print("Training loss independent model: %f"
-      % hamming_loss(y_train, np.vstack(independent_ssvm.predict(X_train))))
-print("Test loss independent model: %f"
-      % hamming_loss(y_test, np.vstack(independent_ssvm.predict(X_test))))
 
 print("Training loss tree model: %f"
       % hamming_loss(y_train, np.vstack(tree_ssvm.predict(X_train))))
 print("Test loss tree model: %f"
       % hamming_loss(y_test, np.vstack(tree_ssvm.predict(X_test))))
-
-print("Training loss full model: %f"
-      % hamming_loss(y_train, np.vstack(full_ssvm.predict(X_train))))
-print("Test loss full model: %f"
-      % hamming_loss(y_test, np.vstack(full_ssvm.predict(X_test))))
